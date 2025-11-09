@@ -372,7 +372,8 @@
             background: white;
             border-radius: 8px;
             transition: all 0.3s;
-            border-left: 4px solid transparent;
+            border: 2px solid #BFD1FF;
+            border-left: 4px solid #BFD1FF;
             cursor: default;
         }
 
@@ -588,16 +589,45 @@
             line-height: 1.5;
         }
 
+        .modal-field {
+            margin-bottom: 15px;
+        }
+
+        .modal-label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: #1E4DB8;
+            margin-bottom: 5px;
+        }
+
+        .modal-input {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #BFD1FF;
+            border-radius: 6px;
+            font-family: inherit;
+            font-size: 14px;
+            color: #111111;
+            background: #FAFBFF;
+            line-height: 1.5;
+        }
+
+        .modal-input:focus {
+            outline: none;
+            border-color: #2A5DDE;
+            background: #FFFFFF;
+        }
+
         .modal-textarea {
             width: 100%;
-            min-height: 100px;
-            padding: 12px;
+            min-height: 80px;
+            padding: 10px 12px;
             border: 1px solid #BFD1FF;
-            border-radius: 8px;
+            border-radius: 6px;
             font-family: inherit;
             font-size: 14px;
             resize: vertical;
-            margin-bottom: 20px;
             color: #111111;
             background: #FAFBFF;
             line-height: 1.6;
@@ -642,16 +672,6 @@
 
         .modal-btn-confirm:hover {
             background: #1740A3;
-        }
-
-        .modal-btn-remove {
-            background: #E74C3C;
-            color: #FFFFFF;
-            margin-right: auto;
-        }
-
-        .modal-btn-remove:hover {
-            background: #c0392b;
         }
 
         .empty-state {
@@ -840,15 +860,20 @@
         </div>
     </div>
 
-    <div class="modal" id="commentModal">
+    <div class="modal" id="editModal">
         <div class="modal-content">
-            <div class="modal-header" id="modalHeader">Add Comment</div>
-            <div class="modal-subheader" id="modalSubheader">Item description</div>
-            <textarea class="modal-textarea" id="commentTextarea" placeholder="Enter a comment (optional)..."></textarea>
+            <div class="modal-header" id="modalHeader">Edit Item</div>
+            <div class="modal-field">
+                <label class="modal-label" for="itemTextInput">Item Text</label>
+                <input type="text" class="modal-input" id="itemTextInput" placeholder="Enter item text...">
+            </div>
+            <div class="modal-field">
+                <label class="modal-label" for="commentTextarea">Comment (Optional)</label>
+                <textarea class="modal-textarea" id="commentTextarea" placeholder="Enter a comment (optional)..."></textarea>
+            </div>
             <div class="modal-buttons">
-                <button class="modal-btn modal-btn-remove" id="modalRemove" style="display: none;">Remove Comment</button>
                 <button class="modal-btn modal-btn-cancel" id="modalCancel">Cancel</button>
-                <button class="modal-btn modal-btn-confirm" id="modalConfirm">Confirm</button>
+                <button class="modal-btn modal-btn-confirm" id="modalConfirm">Save</button>
             </div>
         </div>
     </div>
@@ -888,16 +913,14 @@
         const header = document.getElementById('header');
         const headerLogo = document.querySelector('.header-logo');
 
-        const commentModal = document.getElementById('commentModal');
+        const editModal = document.getElementById('editModal');
         const modalHeader = document.getElementById('modalHeader');
-        const modalSubheader = document.getElementById('modalSubheader');
+        const itemTextInput = document.getElementById('itemTextInput');
         const commentTextarea = document.getElementById('commentTextarea');
         const modalCancel = document.getElementById('modalCancel');
         const modalConfirm = document.getElementById('modalConfirm');
-        const modalRemove = document.getElementById('modalRemove');
 
         let currentModalIndex = null;
-        let currentModalStatus = null;
 
         fileInput.addEventListener('change', handleFileSelect);
         saveBtn.addEventListener('click', () => downloadResults());
@@ -910,14 +933,9 @@
             }
         });
         modalCancel.addEventListener('click', closeModal);
-        modalRemove.addEventListener('click', () => {
-            if (currentModalIndex !== null && currentModalStatus !== null) {
-                setItemStatus(currentModalIndex, currentModalStatus, '');
-                closeModal();
-            }
-        });
-        commentModal.addEventListener('click', (e) => {
-            if (e.target === commentModal) closeModal();
+        modalConfirm.addEventListener('click', confirmModal);
+        editModal.addEventListener('click', (e) => {
+            if (e.target === editModal) closeModal();
         });
         listNameInput.addEventListener('input', () => {
             metadata.name = listNameInput.value;
@@ -1087,15 +1105,6 @@
                 buttonsDiv.className = 'checklist-item-buttons';
 
                 if (status === 'success' || status === 'failed') {
-                    const editCommentBtn = document.createElement('button');
-                    editCommentBtn.className = 'status-btn edit-comment-btn';
-                    editCommentBtn.textContent = state?.comment ? 'Edit Comment' : 'Add Comment';
-                    editCommentBtn.onclick = (e) => {
-                        e.stopPropagation();
-                        openModal(index, status, item);
-                    };
-                    buttonsDiv.appendChild(editCommentBtn);
-
                     const resetBtn = document.createElement('button');
                     resetBtn.className = 'status-btn reset-btn';
                     resetBtn.textContent = 'Reset';
@@ -1105,20 +1114,11 @@
                         setItemStatus(index, 'pending', existingComment);
                     };
                     buttonsDiv.appendChild(resetBtn);
-
-                    const deleteBtn = document.createElement('button');
-                    deleteBtn.className = 'status-btn delete-btn';
-                    deleteBtn.textContent = '🗑';
-                    deleteBtn.onclick = (e) => {
-                        e.stopPropagation();
-                        deleteItem(index);
-                    };
-                    buttonsDiv.appendChild(deleteBtn);
                 } else {
                     // Pending status (or no status)
                     const successBtn = document.createElement('button');
                     successBtn.className = 'status-btn success-btn';
-                    successBtn.innerHTML = '✓ Success';
+                    successBtn.innerHTML = '✓';
                     successBtn.onclick = (e) => {
                         e.stopPropagation();
                         const existingComment = checklistState[index]?.comment || '';
@@ -1127,7 +1127,7 @@
 
                     const failBtn = document.createElement('button');
                     failBtn.className = 'status-btn fail-btn';
-                    failBtn.innerHTML = '✗ Failed';
+                    failBtn.innerHTML = '✗';
                     failBtn.onclick = (e) => {
                         e.stopPropagation();
                         const existingComment = checklistState[index]?.comment || '';
@@ -1136,28 +1136,26 @@
 
                     buttonsDiv.appendChild(successBtn);
                     buttonsDiv.appendChild(failBtn);
-
-                    // Show edit comment button if there's a comment on pending item
-                    if (state?.comment) {
-                        const editCommentBtn = document.createElement('button');
-                        editCommentBtn.className = 'status-btn edit-comment-btn';
-                        editCommentBtn.textContent = 'Edit Comment';
-                        editCommentBtn.onclick = (e) => {
-                            e.stopPropagation();
-                            openModalForComment(index, item);
-                        };
-                        buttonsDiv.appendChild(editCommentBtn);
-                    }
-
-                    const deleteBtn = document.createElement('button');
-                    deleteBtn.className = 'status-btn delete-btn';
-                    deleteBtn.textContent = '🗑';
-                    deleteBtn.onclick = (e) => {
-                        e.stopPropagation();
-                        deleteItem(index);
-                    };
-                    buttonsDiv.appendChild(deleteBtn);
                 }
+
+                // Always show Edit button
+                const editBtn = document.createElement('button');
+                editBtn.className = 'status-btn edit-comment-btn';
+                editBtn.textContent = 'Edit';
+                editBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    openEditModal(index);
+                };
+                buttonsDiv.appendChild(editBtn);
+
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'status-btn delete-btn';
+                deleteBtn.textContent = '🗑';
+                deleteBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    deleteItem(index);
+                };
+                buttonsDiv.appendChild(deleteBtn);
 
                 itemDiv.appendChild(dragHandle);
                 itemDiv.appendChild(itemNumber);
@@ -1187,55 +1185,58 @@
             updateProgress();
         }
 
-        function openModal(index, status, itemText) {
+        function openEditModal(index) {
             currentModalIndex = index;
-            currentModalStatus = status;
-            modalHeader.textContent = status === 'success' ? 'Mark as Success' : 'Mark as Failed';
-            modalSubheader.textContent = itemText;
+            modalHeader.textContent = 'Edit Item';
+
+            const itemText = checklistData[index];
             const existingComment = checklistState[index]?.comment || '';
+
+            itemTextInput.value = itemText;
             commentTextarea.value = existingComment;
 
-            // Show remove button only if there's an existing comment
-            if (existingComment) {
-                modalRemove.style.display = 'block';
-            } else {
-                modalRemove.style.display = 'none';
-            }
-
-            commentModal.classList.add('active');
-            commentTextarea.focus();
-        }
-
-        function openModalForComment(index, itemText) {
-            currentModalIndex = index;
-            currentModalStatus = 'pending';
-            modalHeader.textContent = 'Edit Comment';
-            modalSubheader.textContent = itemText;
-            const existingComment = checklistState[index]?.comment || '';
-            commentTextarea.value = existingComment;
-
-            // Show remove button since there must be a comment to get here
-            modalRemove.style.display = 'block';
-
-            commentModal.classList.add('active');
-            commentTextarea.focus();
+            editModal.classList.add('active');
+            itemTextInput.focus();
         }
 
         function closeModal() {
-            commentModal.classList.remove('active');
+            editModal.classList.remove('active');
             currentModalIndex = null;
-            currentModalStatus = null;
+            itemTextInput.value = '';
             commentTextarea.value = '';
         }
 
         function confirmModal() {
-            if (currentModalIndex !== null && currentModalStatus !== null) {
-                setItemStatus(currentModalIndex, currentModalStatus, commentTextarea.value);
+            if (currentModalIndex !== null) {
+                const newItemText = itemTextInput.value.trim();
+                const newComment = commentTextarea.value.trim();
+
+                if (!newItemText) {
+                    alert('Item text cannot be empty');
+                    return;
+                }
+
+                // Update item text
+                checklistData[currentModalIndex] = newItemText;
+
+                // Update comment while preserving status
+                const currentStatus = checklistState[currentModalIndex]?.status;
+                if (currentStatus) {
+                    checklistState[currentModalIndex] = {
+                        status: currentStatus,
+                        comment: newComment
+                    };
+                } else if (newComment) {
+                    checklistState[currentModalIndex] = {
+                        status: 'pending',
+                        comment: newComment
+                    };
+                }
+
+                renderChecklist();
             }
             closeModal();
         }
-
-        modalConfirm.addEventListener('click', confirmModal);
 
         function setItemStatus(index, status, comment) {
             if (status === null) {
