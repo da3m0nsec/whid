@@ -222,6 +222,7 @@
         .add-item-section {
             padding: 20px 30px;
             background: white;
+            border-top: 1px solid #6F8EFA;
             border-bottom: 1px solid #6F8EFA;
         }
 
@@ -1085,7 +1086,7 @@
                 const buttonsDiv = document.createElement('div');
                 buttonsDiv.className = 'checklist-item-buttons';
 
-                if (status) {
+                if (status === 'success' || status === 'failed') {
                     const editCommentBtn = document.createElement('button');
                     editCommentBtn.className = 'status-btn edit-comment-btn';
                     editCommentBtn.textContent = state?.comment ? 'Edit Comment' : 'Add Comment';
@@ -1100,7 +1101,8 @@
                     resetBtn.textContent = 'Reset';
                     resetBtn.onclick = (e) => {
                         e.stopPropagation();
-                        setItemStatus(index, null, null);
+                        const existingComment = checklistState[index]?.comment || '';
+                        setItemStatus(index, 'pending', existingComment);
                     };
                     buttonsDiv.appendChild(resetBtn);
 
@@ -1113,12 +1115,14 @@
                     };
                     buttonsDiv.appendChild(deleteBtn);
                 } else {
+                    // Pending status (or no status)
                     const successBtn = document.createElement('button');
                     successBtn.className = 'status-btn success-btn';
                     successBtn.innerHTML = '✓ Success';
                     successBtn.onclick = (e) => {
                         e.stopPropagation();
-                        setItemStatus(index, 'success', '');
+                        const existingComment = checklistState[index]?.comment || '';
+                        setItemStatus(index, 'success', existingComment);
                     };
 
                     const failBtn = document.createElement('button');
@@ -1126,11 +1130,24 @@
                     failBtn.innerHTML = '✗ Failed';
                     failBtn.onclick = (e) => {
                         e.stopPropagation();
-                        setItemStatus(index, 'failed', '');
+                        const existingComment = checklistState[index]?.comment || '';
+                        setItemStatus(index, 'failed', existingComment);
                     };
 
                     buttonsDiv.appendChild(successBtn);
                     buttonsDiv.appendChild(failBtn);
+
+                    // Show edit comment button if there's a comment on pending item
+                    if (state?.comment) {
+                        const editCommentBtn = document.createElement('button');
+                        editCommentBtn.className = 'status-btn edit-comment-btn';
+                        editCommentBtn.textContent = 'Edit Comment';
+                        editCommentBtn.onclick = (e) => {
+                            e.stopPropagation();
+                            openModalForComment(index, item);
+                        };
+                        buttonsDiv.appendChild(editCommentBtn);
+                    }
 
                     const deleteBtn = document.createElement('button');
                     deleteBtn.className = 'status-btn delete-btn';
@@ -1189,6 +1206,21 @@
             commentTextarea.focus();
         }
 
+        function openModalForComment(index, itemText) {
+            currentModalIndex = index;
+            currentModalStatus = 'pending';
+            modalHeader.textContent = 'Edit Comment';
+            modalSubheader.textContent = itemText;
+            const existingComment = checklistState[index]?.comment || '';
+            commentTextarea.value = existingComment;
+
+            // Show remove button since there must be a comment to get here
+            modalRemove.style.display = 'block';
+
+            commentModal.classList.add('active');
+            commentTextarea.focus();
+        }
+
         function closeModal() {
             commentModal.classList.remove('active');
             currentModalIndex = null;
@@ -1208,6 +1240,16 @@
         function setItemStatus(index, status, comment) {
             if (status === null) {
                 checklistState[index] = null;
+            } else if (status === 'pending') {
+                // For pending status, keep comment but treat as pending (no status class)
+                if (comment) {
+                    checklistState[index] = {
+                        status: 'pending',
+                        comment: comment
+                    };
+                } else {
+                    checklistState[index] = null;
+                }
             } else {
                 checklistState[index] = {
                     status: status,
